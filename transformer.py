@@ -20,13 +20,12 @@ import networkx as nx
 from GCN import GCN2
 from infltransformer_encoder import InflTransformerEncoder
 
-
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 def PredictNodeByDenseNet(x, edge_index, y, is_train):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # 定义device
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
     GNN = GCN2(3, 64, 128).to(device)
     embedding = GNN(x, edge_index)
     # 扩充维度
@@ -62,7 +61,7 @@ def PredictNodeByDenseNet(x, edge_index, y, is_train):
         encoder.load_state_dict(checkpoint['net'])
         y_pred = encoder(embedding)
         y_pred_sort = torch.argsort(y_pred.squeeze(), descending=True)   #返回对应的input(node)
-        node_features_gcn = y_pred_sort.detach().numpy()
+        node_features_gcn = y_pred_sort.cpu().detach().numpy()
         return  node_features_gcn
 
 if __name__ == '__main__':
@@ -77,8 +76,8 @@ if __name__ == '__main__':
         PredictNodeByDenseNet(x, edge_index, y, is_train)
     else:
         test_dataset = MyDataset("polbooks_105")
-        xll = torch.from_numpy(test_dataset.centrality_feature).type(torch.float)
-        edge_indexll = torch.from_numpy(test_dataset.edge_index).type(torch.long)
+        xll = torch.from_numpy(test_dataset.centrality_feature).type(torch.float).to(device)
+        edge_indexll = torch.from_numpy(test_dataset.edge_index).type(torch.long).to(device)
         yll = None
         candidate_seed = PredictNodeByDenseNet(xll, edge_indexll, yll, False)
         print(candidate_seed)
